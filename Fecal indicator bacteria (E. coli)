@@ -41,7 +41,6 @@ qPCR_uidA_GCpermL <- qPCR_uidA_sampleevent1 %>%
          'site' = 'Sample Site location')
 
 qPCR_uidA_GCpermL$site <- factor(qPCR_uidA_GCpermL$site,levels = c(1:11,"N")) # Reorder sites from 1-10-11-2-3-4...-Neg to 1-2-3...-10-11-Neg on x-axis.
-#pdf("qPCR_Adeno_GCNpermL_boxplot.a.1.pdf", width = 13, height = 8) # Create the pdf output file.
 qPCR_uidA_GCNpermL_boxplot.a.1 <- ggplot(qPCR_uidA_GCpermL, aes(x = site, y = logGCper100mL, fill = site)) +
   geom_boxplot() +
   geom_jitter(color = 'black', size = 1.5, width = 0.2, height = 0) +
@@ -62,7 +61,6 @@ qPCR_uidA_GCperng <- qPCR_uidA_sampleevent1 %>%
          'site' = 'Sample Site location')
 
 qPCR_uidA_GCperng$site <- factor(qPCR_uidA_GCperng$site,levels = c(1:11,"N")) # Reorder sites from 1-10-11-2-3-4...-Neg to 1-2-3...-10-11-Neg on x-axis.
-#pdf("qPCR_Adeno_GCNpermL_boxplot.a.1.pdf", width = 13, height = 8) # Create the pdf output file.
 qPCR_uidA_GCNperng_boxplot.a.1 <- ggplot(qPCR_uidA_GCperng, aes(x = site, y = log_GCN_per_ng, fill = site)) +
   geom_boxplot() +
   geom_jitter(color = 'black', size = 1.5, width = 0.2, height = 0) +
@@ -72,6 +70,41 @@ qPCR_uidA_GCNperng_boxplot.a.1 <- ggplot(qPCR_uidA_GCperng, aes(x = site, y = lo
   labs(title = "Quantities of E. coli in Spring 2021", x = "Sample Location", y = "Log10 gene copy numbers per biomass (ng) of aquatic sample") +
   theme(legend.position="none") +
   boxplot_theme
+  
+#GLM Tests to determine significance from lesser polluted environments.
+#Volume 
+#Significance in reference to site 1 (Duff Roblin Provincial Park)
+qPCR_uidA_GCpermL1$site <- factor(qPCR_uidA_GCpermL1$site,levels = c(11:1,"N")) # Reorder sites from 1-10-11-2-3-4...-Neg to 1-2-3...-10-11-Neg on x-axis.      
+qPCR_uidA_GCN_permL_GLM.3a <- GLM(logGCper100mL ~ site,qPCR_uidA_GCpermL1,lsm=T)
+summary(qPCR_uidA_GCN_permL_GLM.3a)
+summary(qPCR_uidA_GCN_permL_GLM.3a$Parameter)
+p.values <- qPCR_uidA_GCN_permL_GLM.3a$Parameter[,c("Pr(>|t|)")]
+p.values1a <- p.adjust(p.values, method = "BH")
+
+#Significance in reference to site 6 (upstream to outfall of WEWPCC) 
+qPCR_uidA_GCpermL1$site <- factor(qPCR_uidA_GCpermL1$site,levels = c(11:6,"N")) # Reorder sites from 1-10-11-2-3-4...-Neg to 1-2-3...-10-11-Neg on x-axis.      
+qPCR_uidA_GCN_permL_GLM.3a <- GLM(logGCper100mL ~ site,qPCR_uidA_GCpermL1,lsm=T)
+summary(qPCR_uidA_GCN_permL_GLM.3a)
+summary(qPCR_uidA_GCN_permL_GLM.3a$Parameter)
+p.values <- qPCR_uidA_GCN_permL_GLM.3a$Parameter[,c("Pr(>|t|)")]
+p.values1a <- p.adjust(p.values, method = "BH")
+
+#Biomass 
+#Significance in reference to site 1 (Duff Roblin Provincial Park)
+qPCR_uidA_GCperng.1$site <- factor(qPCR_uidA_GCperng.1$site,levels = c(11:1,"N")) # Reorder sites from 1-10-11-2-3-4...-Neg to 1-2-3...-10-11-Neg on x-axis.      
+qPCR_uidA_GCN_perng_GLM.1a <- GLM(log_GCN_per_ng ~ site,qPCR_uidA_GCperng.1,lsm=T)
+summary(qPCR_uidA_GCN_perng_GLM.1a)
+summary(qPCR_uidA_GCN_perng_GLM.1a$Parameter)
+p.values <- qPCR_uidA_GCN_perng_GLM.1a$Parameter[,c("Pr(>|t|)")]
+p.values1a <- p.adjust(p.values, method = "BH")
+
+#Significance in reference to site 6 (upstream to outfall of WEWPCC)
+qPCR_uidA_GCperng.1$site <- factor(qPCR_uidA_GCperng.1$site,levels = c(11:6,"N")) # Reorder sites from 1-10-11-2-3-4...-Neg to 1-2-3...-10-11-Neg on x-axis.       
+qPCR_uidA_GCN_perng_GLM.1a <- GLM(log_GCN_per_ng ~ site,qPCR_uidA_GCperng.1,lsm=T)
+summary(qPCR_uidA_GCN_perng_GLM.1a)
+summary(qPCR_uidA_GCN_perng_GLM.1a$Parameter)
+p.values1 <- qPCR_uidA_GCN_perng_GLM.1a$Parameter[,c("Pr(>|t|)")]
+p.values1. <- p.adjust(p.values1, method = "BH")      
 
 #Sample collection 2: August 27 2021
 #Gene copies normalized per volume
@@ -86,7 +119,6 @@ qPCR_uidA_GCpermL2 <- qPCR_uidA_sampleevent2 %>%
          'site' = 'Sample Site location')
 
 qPCR_uidA_GCpermL2$site <- factor(qPCR_uidA_GCpermL2$site,levels = c(1:11,"N")) # Reorder sites from 1-10-11-2-3-4...-Neg to 1-2-3...-10-11-Neg on x-axis.
-#pdf("qPCR_Adeno_GCNpermL_boxplot.a.1.pdf", width = 13, height = 8) # Create the pdf output file.
 qPCR_uidA_GCNpermL_boxplot.b.1 <- ggplot(qPCR_uidA_GCpermL2, aes(x = site, y = logGCper100mL, fill = site)) +
   geom_boxplot() +
   geom_jitter(color = 'black', size = 1.5, width = 0.2, height = 0) +
@@ -107,7 +139,6 @@ qPCR_uidA_GCperng2 <- qPCR_uidA_sampleevent2 %>%
          'site' = 'Sample Site location')
 
 qPCR_uidA_GCperng2$site <- factor(qPCR_uidA_GCperng2$site,levels = c(1:11,"N")) # Reorder sites from 1-10-11-2-3-4...-Neg to 1-2-3...-10-11-Neg on x-axis.
-#pdf("qPCR_Adeno_GCNpermL_boxplot.a.1.pdf", width = 13, height = 8) # Create the pdf output file.
 qPCR_uidA_GCNperng_boxplot.b.1 <- ggplot(qPCR_uidA_GCperng2, aes(x = site, y = log_GCN_per_ng, fill = site)) +
   geom_boxplot() +
   geom_jitter(color = 'black', size = 1.5, width = 0.2, height = 0) +
@@ -118,6 +149,40 @@ qPCR_uidA_GCNperng_boxplot.b.1 <- ggplot(qPCR_uidA_GCperng2, aes(x = site, y = l
   theme(legend.position="none") +
   boxplot_theme
 
+#GLM Tests to determine significance from lesser polluted environments.
+#Volume
+#Significance in reference to site 1 (Duff Roblin Provincial Park)
+qPCR_uidA_GCpermL2$site <- factor(qPCR_uidA_GCpermL2$site,levels = c(11:1,"N")) # Reorder sites from 1-10-11-2-3-4...-Neg to 1-2-3...-10-11-Neg on x-axis.       
+qPCR_uidA_GCN_permL_GLM.2a <- GLM(logGCper100mL ~ site,qPCR_uidA_GCpermL2,lsm=T)
+summary(qPCR_uidA_GCN_permL_GLM.2a)
+summary(qPCR_uidA_GCN_permL_GLM.2a$Parameter)
+p.values <- qPCR_uidA_GCN_permL_GLM.2a$Parameter[,c("Pr(>|t|)")]
+p.values2a <- p.adjust(p.values, method = "BH")
+
+#Significance in reference to site 6 (upstream to outfall of WEWPCC)
+qPCR_uidA_GCpermL2$site <- factor(qPCR_uidA_GCpermL2$site,levels = c(11:6,"N")) # Reorder sites from 1-10-11-2-3-4...-Neg to 1-2-3...-10-11-Neg on x-axis.       
+qPCR_uidA_GCN_permL_GLM.2a <- GLM(logGCper100mL ~ site,qPCR_uidA_GCpermL2,lsm=T)
+summary(qPCR_uidA_GCN_permL_GLM.2a)
+summary(qPCR_uidA_GCN_permL_GLM.2a$Parameter)
+p.values <- qPCR_uidA_GCN_permL_GLM.2a$Parameter[,c("Pr(>|t|)")]
+p.values1a <- p.adjust(p.values, method = "BH")
+
+#Biomass
+#Significance in reference to site 1 (Duff Roblin Provincial Park)
+qPCR_uidA_GCperng.2$site <- factor(qPCR_uidA_GCperng.2$site,levels = c(11:1,"N")) # Reorder sites from 1-10-11-2-3-4...-Neg to 1-2-3...-10-11-Neg on x-axis.        
+qPCR_uidA_GCN_perng_GLM.2b <- GLM(log_GCN_per_ng ~ site,qPCR_uidA_GCperng.2,lsm=T)
+summary(qPCR_uidA_GCN_perng_GLM.2b)
+summary(qPCR_uidA_GCN_perng_GLM.2b$Parameter)
+p.values <- qPCR_uidA_GCN_perng_GLM.2b$Parameter[,c("Pr(>|t|)")]
+p.values2a <- p.adjust(p.values, method = "BH")
+
+#Significance in reference to site 6  (upstream to outfall of WEWPCC)
+qPCR_uidA_GCperng.2$site <- factor(qPCR_uidA_GCperng.2$site,levels = c(11:6,"N")) # Reorder sites from 1-10-11-2-3-4...-Neg to 1-2-3...-10-11-Neg on x-axis.       
+qPCR_uidA_GCN_perng_GLM.2b <- GLM(log_GCN_per_ng ~ site,qPCR_uidA_GCperng.2,lsm=T)
+summary(qPCR_uidA_GCN_perng_GLM.2b)
+summary(qPCR_uidA_GCN_perng_GLM.2b$Parameter)
+p.values <- qPCR_uidA_GCN_perng_GLM.2b$Parameter[,c("Pr(>|t|)")]
+p.values1a <- p.adjust(p.values, method = "BH")
 
 #Sample Collection 3: November 21 2021
 #Gene copies normalized per volume
@@ -132,7 +197,6 @@ qPCR_uidA_GCpermL3 <- qPCR_uidA_sampleevent3 %>%
          'site' = 'Sample Site location')
 
 qPCR_uidA_GCpermL3$site <- factor(qPCR_uidA_GCpermL3$site,levels = c(1:11,"N")) # Reorder sites from 1-10-11-2-3-4...-Neg to 1-2-3...-10-11-Neg on x-axis.
-#pdf("qPCR_Adeno_GCNpermL_boxplot.a.1.pdf", width = 13, height = 8) # Create the pdf output file.
 qPCR_uidA_GCNpermL_boxplot.c.1 <- ggplot(qPCR_uidA_GCpermL3, aes(x = site, y = logGCper100mL, fill = site)) +
   geom_boxplot() +
   geom_jitter(color = 'black', size = 1.5, width = 0.2, height = 0) +
@@ -153,7 +217,6 @@ qPCR_uidA_GCperng3 <- qPCR_uidA_sampleevent3 %>%
          'site' = 'Sample Site location')
          
 qPCR_uidA_GCperng3$site <- factor(qPCR_uidA_GCperng3$site,levels = c(1:11,"N")) # Reorder sites from 1-10-11-2-3-4...-Neg to 1-2-3...-10-11-Neg on x-axis.
-#pdf("qPCR_Adeno_GCNpermL_boxplot.a.1.pdf", width = 13, height = 8) # Create the pdf output file.
 qPCR_uidA_GCNperng_boxplot.c.1 <- ggplot(qPCR_uidA_GCperng3, aes(x = site, y = log_GCN_per_ng, fill = site)) +
   geom_boxplot() +
   geom_jitter(color = 'black', size = 1.5, width = 0.2, height = 0) +
@@ -171,3 +234,40 @@ plot_grid(qPCR_uidA_GCNperng_boxplot.a.1, qPCR_uidA_GCNperng_boxplot.b.1, qPCR_u
 
 #volume
 plot_grid(qPCR_uidA_GCNpermL_boxplot.a.1, qPCR_uidA_GCNpermL_boxplot.b.1, qPCR_uidA_GCNpermL_boxplot.c.1, labels = c('A', 'B', 'C'), label_size = 14, nrow = 1)
+
+
+#GLM Tests to determine significance from lesser polluted environments.
+#Volume 
+#Significance in reference to site 1 (Duff Roblin Provincial Park)
+qPCR_uidA_GCpermL3$site <- factor(qPCR_uidA_GCpermL3$site,levels = c(11:1,"N")) # Reorder sites from 1-10-11-2-3-4...-Neg to 1-2-3...-10-11-Neg on x-axis.      
+qPCR_uidA_GCN_permL_GLM.3c <- GLM(logGCper100mL ~ site,qPCR_uidA_GCpermL3,lsm=T)
+summary(qPCR_uidA_GCN_permL_GLM.3c)
+summary(qPCR_uidA_GCN_permL_GLM.3c$Parameter)
+p.values <- qPCR_uidA_GCN_permL_GLM.3c$Parameter[,c("Pr(>|t|)")]
+p.values3a <- p.adjust(p.values, method = "BH")
+
+#Significance in reference to site 6 (upstream to outfall of WEWPCC)
+qPCR_uidA_GCpermL3$site <- factor(qPCR_uidA_GCpermL3$site,levels = c(11:6,"N")) # Reorder sites from 1-10-11-2-3-4...-Neg to 1-2-3...-10-11-Neg on x-axis.        
+qPCR_uidA_GCN_permL_GLM.3c <- GLM(logGCper100mL ~ site,qPCR_uidA_GCpermL3,lsm=T)
+summary(qPCR_uidA_GCN_permL_GLM.3c)
+summary(qPCR_uidA_GCN_permL_GLM.3c$Parameter)
+p.values <- qPCR_uidA_GCN_permL_GLM.3c$Parameter[,c("Pr(>|t|)")]
+p.values3c <- p.adjust(p.values, method = "BH")
+
+#Biomass
+#Significance in reference to site 1 (Duff Roblin Provincial Park)
+qPCR_uidA_GCperng3$site <- factor(qPCR_uidA_GCperng3$site,levels = c(11:1,"N")) # Reorder sites from 1-10-11-2-3-4...-Neg to 1-2-3...-10-11-Neg on x-axis.     
+qPCR_uidA_GCN_perng_GLM.3b <- GLM(log_GCN_per_ng ~ site,qPCR_uidA_GCperng3,lsm=T)
+summary(qPCR_uidA_GCN_perng_GLM.3b)
+summary(qPCR_uidA_GCN_perng_GLM.3b$Parameter)
+p.values <- qPCR_uidA_GCN_perng_GLM.3b$Parameter[,c("Pr(>|t|)")]
+p.values2a <- p.adjust(p.values, method = "BH")
+
+#Significance in reference to site 6 (upstream to outfall of WEWPCC)
+qPCR_uidA_GCperng3$site <- factor(qPCR_uidA_GCperng3$site,levels = c(11:6,"N")) # Reorder sites from 1-10-11-2-3-4...-Neg to 1-2-3...-10-11-Neg on x-axis.       
+qPCR_uidA_GCN_perng_GLM.3b <- GLM(log_GCN_per_ng ~ site,qPCR_uidA_GCperng3,lsm=T)
+summary(qPCR_uidA_GCN_perng_GLM.3b)
+summary(qPCR_uidA_GCN_perng_GLM.3b$Parameter)
+p.values <- qPCR_uidA_GCN_perng_GLM.3b$Parameter[,c("Pr(>|t|)")]
+p.values1a <- p.adjust(p.values, method = "BH")
+
