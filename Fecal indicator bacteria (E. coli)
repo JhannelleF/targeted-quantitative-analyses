@@ -1,0 +1,173 @@
+# The R scripts used to generate boxplots (GCNs per volume and GCNs per biomass) for Fecal indicator bacteria (E. coli)
+
+library(readxl)
+library(magrittr)
+library(dplyr)
+library(ggplot2)
+library(cowplot)
+library(sasLM)
+
+# Some boxplot aesthetics to be used for all boxplots:
+boxplot_theme <- theme(#plot.title = element_text(size = 16, face = "bold", hjust = 0.5, vjust = 3.5), #hjust = 0.5 to center horizontally.
+  plot.margin = margin(1, 1, 1, 1, "cm"),
+  panel.background = element_rect(fill = 'white'),
+  panel.border = element_rect(colour = "grey", fill=NA, size=1),
+  panel.grid.major = element_line(color = 'grey95'),
+  panel.grid.major.x = element_blank(),
+  axis.title.x = element_text(size = 18, vjust = -1),
+  axis.title.y = element_text(size = 18, vjust = 2.5),
+  axis.text.x = element_text(size = 15),
+  axis.text.y = element_text(size = 15),
+  axis.line = element_line(color = 'grey'),
+  legend.title = element_text(size = 14, face = "bold"),
+  legend.text = element_text(size = 12),
+  legend.key = element_blank()) +
+  theme(plot.title = element_text(hjust = 0.5, size = 16))
+
+#To specify colours for each sample location. 
+my_colors <- c("red", "blue", "blue", "blue", "green", "red", "yellow",  "yellow", "orange", "orange", "orange","purple")
+
+#Run for each sample event then combine into 1 panel 
+#Sample Collection 1: May 16 2021
+#Gene copies normalized by volume
+qPCR_uidA_sampleevent1 <- read_excel("qPCR_uidA-sampleevent1.xls")
+qPCR_uidA_GCpermL <- qPCR_uidA_sampleevent1 %>%
+  subset(qPCRProbe == 'uidA') %>% # Duplex qPCR, so keep only uida results.
+  subset(select = c('Sample Site location', 'GCN per mL sample', 'log(GCN per mL sample)','GCN per 100mL sample','log(GCN per 100mL sample)')) %>% # Also selecting the non-normalized values for the boxplots.
+  rename('GCN_per_mL' = 'GCN per mL sample',
+         'logGCN_per_mL' = 'log(GCN per mL sample)',
+         'GCper100mL' = 'GCN per 100mL sample',
+         'logGCper100mL' = 'log(GCN per 100mL sample)',
+         'site' = 'Sample Site location')
+
+qPCR_uidA_GCpermL$site <- factor(qPCR_uidA_GCpermL$site,levels = c(1:11,"N")) # Reorder sites from 1-10-11-2-3-4...-Neg to 1-2-3...-10-11-Neg on x-axis.
+#pdf("qPCR_Adeno_GCNpermL_boxplot.a.1.pdf", width = 13, height = 8) # Create the pdf output file.
+qPCR_uidA_GCNpermL_boxplot.a.1 <- ggplot(qPCR_uidA_GCpermL, aes(x = site, y = logGCper100mL, fill = site)) +
+  geom_boxplot() +
+  geom_jitter(color = 'black', size = 1.5, width = 0.2, height = 0) +
+  theme_bw() +
+  scale_fill_manual(limits = c(1:11,"N"),values = my_colors) +
+  theme(plot.title = element_text (face = "italic")) +
+  labs(title = "Quantities of E. coli in Spring 2021", x = "Sample Location", y = "Log10 gene copy numbers per 100mL of aquatic sample") +
+  theme(legend.position="none") +
+  boxplot_theme
+
+#Gene copies normalized by biomass 
+qPCR_uidA_sampleevent1 <- read_excel("qPCR_uidA-sampleevent1.xls")
+qPCR_uidA_GCperng <- qPCR_uidA_sampleevent1 %>%
+  subset(qPCRProbe == 'uidA') %>% # Duplex qPCR, so keep only uida results.
+  subset(select = c('Sample Site location', 'GC per ng', 'log(GC per ng)')) %>% # Also selecting the non-normalized values for the boxplots.
+  rename('GCN_per_ng' = 'GC per ng',
+         'log_GCN_per_ng' = 'log(GC per ng)',
+         'site' = 'Sample Site location')
+
+qPCR_uidA_GCperng$site <- factor(qPCR_uidA_GCperng$site,levels = c(1:11,"N")) # Reorder sites from 1-10-11-2-3-4...-Neg to 1-2-3...-10-11-Neg on x-axis.
+#pdf("qPCR_Adeno_GCNpermL_boxplot.a.1.pdf", width = 13, height = 8) # Create the pdf output file.
+qPCR_uidA_GCNperng_boxplot.a.1 <- ggplot(qPCR_uidA_GCperng, aes(x = site, y = log_GCN_per_ng, fill = site)) +
+  geom_boxplot() +
+  geom_jitter(color = 'black', size = 1.5, width = 0.2, height = 0) +
+  theme_bw() +
+  scale_fill_manual(limits = c(1:11,"N"),values = my_colors) +
+  theme(plot.title = element_text (face = "italic")) +
+  labs(title = "Quantities of E. coli in Spring 2021", x = "Sample Location", y = "Log10 gene copy numbers per biomass (ng) of aquatic sample") +
+  theme(legend.position="none") +
+  boxplot_theme
+
+#Sample collection 2: August 27 2021
+#Gene copies normalized per volume
+qPCR_uidA_sampleevent2 <- read_excel("qPCR_uidA-sampleevent2.xls")
+qPCR_uidA_GCpermL2 <- qPCR_uidA_sampleevent2 %>%
+  subset(qPCRProbe == 'uidA') %>% # Duplex qPCR, so keep only uidA results.
+  subset(select = c('Sample Site location', 'GCN per mL sample', 'log(GCN per mL sample)','GCN per 100mL sample','log(GCN per 100mL sample)')) %>% # Also selecting the non-normalized values for the boxplots.
+  rename('GCN_per_mL' = 'GCN per mL sample',
+         'logGCN_per_mL' = 'log(GCN per mL sample)',
+         'GCper100mL' = 'GCN per 100mL sample',
+         'logGCper100mL' = 'log(GCN per 100mL sample)',
+         'site' = 'Sample Site location')
+
+qPCR_uidA_GCpermL2$site <- factor(qPCR_uidA_GCpermL2$site,levels = c(1:11,"N")) # Reorder sites from 1-10-11-2-3-4...-Neg to 1-2-3...-10-11-Neg on x-axis.
+#pdf("qPCR_Adeno_GCNpermL_boxplot.a.1.pdf", width = 13, height = 8) # Create the pdf output file.
+qPCR_uidA_GCNpermL_boxplot.b.1 <- ggplot(qPCR_uidA_GCpermL2, aes(x = site, y = logGCper100mL, fill = site)) +
+  geom_boxplot() +
+  geom_jitter(color = 'black', size = 1.5, width = 0.2, height = 0) +
+  theme_bw() +
+  scale_fill_manual(limits = c(1:11,"N"),values = my_colors) +
+  theme(plot.title = element_text (face = "italic")) +
+  labs(title = "Quantities of E. coli in Summer 2021", x = "Sample Location", y = "Log10 gene copy numbers per 100mL of aquatic sample") +
+  theme(legend.position="none") +
+  boxplot_theme
+
+#Gene copies normalized by biomass 
+qPCR_uidA_sampleevent2 <- read_excel("qPCR_uidA-sampleevent2.xls")
+qPCR_uidA_GCperng2 <- qPCR_uidA_sampleevent2 %>%
+  subset(qPCRProbe == 'uidA') %>% # Duplex qPCR, so keep only uida results.
+  subset(select = c('Sample Site location', 'GC per ng', 'log(GC per ng)')) %>% # Also selecting the non-normalized values for the boxplots.
+  rename('GCN_per_ng' = 'GC per ng',
+         'log_GCN_per_ng' = 'log(GC per ng)',
+         'site' = 'Sample Site location')
+
+qPCR_uidA_GCperng2$site <- factor(qPCR_uidA_GCperng2$site,levels = c(1:11,"N")) # Reorder sites from 1-10-11-2-3-4...-Neg to 1-2-3...-10-11-Neg on x-axis.
+#pdf("qPCR_Adeno_GCNpermL_boxplot.a.1.pdf", width = 13, height = 8) # Create the pdf output file.
+qPCR_uidA_GCNperng_boxplot.b.1 <- ggplot(qPCR_uidA_GCperng2, aes(x = site, y = log_GCN_per_ng, fill = site)) +
+  geom_boxplot() +
+  geom_jitter(color = 'black', size = 1.5, width = 0.2, height = 0) +
+  theme_bw() +
+  scale_fill_manual(limits = c(1:11,"N"),values = my_colors) +
+  theme(plot.title = element_text (face = "italic")) +
+  labs(title = "Quantities of E. coli in Summer 2021", x = "Sample Location", y = "Log10 gene copy numbers per biomass (ng) of aquatic sample") +
+  theme(legend.position="none") +
+  boxplot_theme
+
+
+#Sample Collection 3: November 21 2021
+#Gene copies normalized per volume
+qPCR_uidA_sampleevent3 <- read_excel("qPCR_uidA-sampleevent3.xls")
+qPCR_uidA_GCpermL3 <- qPCR_uidA_sampleevent3 %>%
+  subset(qPCRProbe == 'uidA') %>% # Duplex qPCR, so keep only uidA results.
+  subset(select = c('Sample Site location', 'GCN per mL sample', 'log(GCN per mL sample)','GCN per 100mL sample','log(GCN per 100mL sample)')) %>% # Also selecting the non-normalized values for the boxplots.
+  rename('GCN_per_mL' = 'GCN per mL sample',
+         'logGCN_per_mL' = 'log(GCN per mL sample)',
+         'GCper100mL' = 'GCN per 100mL sample',
+         'logGCper100mL' = 'log(GCN per 100mL sample)',
+         'site' = 'Sample Site location')
+
+qPCR_uidA_GCpermL3$site <- factor(qPCR_uidA_GCpermL3$site,levels = c(1:11,"N")) # Reorder sites from 1-10-11-2-3-4...-Neg to 1-2-3...-10-11-Neg on x-axis.
+#pdf("qPCR_Adeno_GCNpermL_boxplot.a.1.pdf", width = 13, height = 8) # Create the pdf output file.
+qPCR_uidA_GCNpermL_boxplot.c.1 <- ggplot(qPCR_uidA_GCpermL3, aes(x = site, y = logGCper100mL, fill = site)) +
+  geom_boxplot() +
+  geom_jitter(color = 'black', size = 1.5, width = 0.2, height = 0) +
+  theme_bw() +
+  scale_fill_manual(limits = c(1:11,"N"),values = my_colors) +
+  theme(plot.title = element_text (face = "italic")) +
+  labs(title = "Quantities of E. coli in Fall 2021", x = "Sample Location", y = "Log10 gene copy numbers per 100mL of aquatic sample") +
+  theme(legend.position="none") +
+  boxplot_theme
+
+#Gene copies normalized by biomass 
+qPCR_uidA_sampleevent3 <- read_excel("qPCR_uidA-sampleevent3.xls")
+qPCR_uidA_GCperng3 <- qPCR_uidA_sampleevent3 %>%
+  subset(qPCRProbe == 'uidA') %>% # Duplex qPCR, so keep only uida results.
+  subset(select = c('Sample Site location', 'GC per ng', 'log(GC per ng)')) %>% # Also selecting the non-normalized values for the boxplots.
+  rename('GCN_per_ng' = 'GC per ng',
+         'log_GCN_per_ng' = 'log(GC per ng)',
+         'site' = 'Sample Site location')
+         
+qPCR_uidA_GCperng3$site <- factor(qPCR_uidA_GCperng3$site,levels = c(1:11,"N")) # Reorder sites from 1-10-11-2-3-4...-Neg to 1-2-3...-10-11-Neg on x-axis.
+#pdf("qPCR_Adeno_GCNpermL_boxplot.a.1.pdf", width = 13, height = 8) # Create the pdf output file.
+qPCR_uidA_GCNperng_boxplot.c.1 <- ggplot(qPCR_uidA_GCperng3, aes(x = site, y = log_GCN_per_ng, fill = site)) +
+  geom_boxplot() +
+  geom_jitter(color = 'black', size = 1.5, width = 0.2, height = 0) +
+  theme_bw() +
+  scale_fill_manual(limits = c(1:11,"N"),values = my_colors) +
+  theme(plot.title = element_text (face = "italic")) +
+  labs(title = "Quantities of E. coli in Fall 2021", x = "Sample Location", y = "Log10 gene copy numbers per biomass (ng) of aquatic sample") +
+  theme(legend.position="none") +
+  boxplot_theme
+
+
+#Create Figure Panel for all sampling events across all 3 seasons.
+#Biomass
+plot_grid(qPCR_uidA_GCNperng_boxplot.a.1, qPCR_uidA_GCNperng_boxplot.b.1, qPCR_uidA_GCNperng_boxplot.c.1, labels = c('A', 'B', 'C'), label_size = 14, nrow = 1)
+
+#volume
+plot_grid(qPCR_uidA_GCNpermL_boxplot.a.1, qPCR_uidA_GCNpermL_boxplot.b.1, qPCR_uidA_GCNpermL_boxplot.c.1, labels = c('A', 'B', 'C'), label_size = 14, nrow = 1)
