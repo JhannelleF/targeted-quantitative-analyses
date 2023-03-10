@@ -1,0 +1,275 @@
+# The R scripts used to generate boxplots (GCNs per volume and GCNs per biomass) for crAss phage
+
+library(readxl)
+library(magrittr)
+library(dplyr)
+library(ggplot2)
+library(cowplot)
+library(sasLM)
+
+# Some boxplot aesthetics to be used for all boxplots:
+boxplot_theme <- theme(#plot.title = element_text(size = 16, face = "bold", hjust = 0.5, vjust = 3.5), #hjust = 0.5 to center horizontally.
+  plot.margin = margin(1, 1, 1, 1, "cm"),
+  panel.background = element_rect(fill = 'white'),
+  panel.border = element_rect(colour = "grey", fill=NA, size=1),
+  panel.grid.major = element_line(color = 'grey95'),
+  panel.grid.major.x = element_blank(),
+  axis.title.x = element_text(size = 18, vjust = -1),
+  axis.title.y = element_text(size = 18, vjust = 2.5),
+  axis.text.x = element_text(size = 15),
+  axis.text.y = element_text(size = 15),
+  axis.line = element_line(color = 'grey'),
+  legend.title = element_text(size = 14),
+  legend.text = element_text(size = 12),
+  legend.key = element_blank()) +
+  theme(plot.title = element_text(hjust = 0.5, size = 16))
+
+#To specify colours for each sample location. 
+my_colors <- c("red", "blue", "blue", "blue", "green", "red", "yellow",  "yellow", "orange", "orange", "orange","purple")
+
+# crAss
+#Run for each sample event then combine into 1 pannel
+#Sample Collection 1: May 2021
+#Gene copies normalized per biomass
+Adeno_crAss_sampleevent1 <- read_excel("Adeno_crAss_sampleevent1.xlsx")
+qPCR_CrAss_GCperng.1 <- Adeno_crAss_sampleevent1 %>%
+  subset(qPCRProbe == 'CrAss') %>% # Duplex qPCR, so keep only Adeno results.
+  subset(select = c('Sample Site location', 'GCN per ng','log(GCN per ng)')) %>% # Also selecting the non-normalized values for the boxplots.
+  rename('GCN_per_ng' = 'GCN per ng',
+         'log_GCN_per_ng' = 'log(GCN per ng)',
+         'site' = 'Sample Site location')
+
+qPCR_CrAss_GCperng.1$site <- factor(qPCR_CrAss_GCperng.1$site,levels = c(1:11,"N")) # Reorder sites from 1-10-11-2-3-4...-Neg to 1-2-3...-10-11-Neg on x-axis.
+#pdf("qPCR_Adeno_GCNpermL_boxplot.a.1.pdf", width = 13, height = 8) # Create the pdf output file.
+qPCR_CrAss_GCNperng_boxplot.a.1 <- ggplot(qPCR_CrAss_GCperng.1, aes(x = site, y = log_GCN_per_ng, fill = site)) +
+  geom_boxplot() +
+  geom_jitter(color = 'black', size = 1.5, width = 0.2, height = 0) +
+  theme_bw() +
+  scale_fill_manual(limits = c(1:11,"N"),values = my_colors) + # Reorder sites in legend.
+  labs(title = "Quantities of Cross Assembly Phage in Spring 2021", x = "Sample Location", y = "Log10 gene copy numbers per biomass (ng) of aquatic sample") +
+  theme(legend.position="none") +
+  boxplot_theme
+
+#Gene copies normalized per volume
+Adeno_crAss_sampleevent1 <- read_excel("Adeno_crAss_sampleevent1.xlsx")
+qPCR_CrAss_GCpermL.1 <- Adeno_crAss_sampleevent1 %>%
+  subset(qPCRProbe == 'CrAss') %>% # Duplex qPCR, so keep only CrAss results.
+  subset(select = c('Sample Site location', 'GCN per mL sample', 'log(GCN per mL sample)','GCN per 100mL sample','log(GCN per 100mL sample)')) %>% # Also selecting the non-normalized values for the boxplots.
+  rename('GCN_per_mL' = 'GCN per mL sample',
+         'logGCN_per_mL' = 'log(GCN per mL sample)',
+         'GCper100mL' = 'GCN per 100mL sample',
+         'logGCper100mL' = 'log(GCN per 100mL sample)',
+         'site' = 'Sample Site location')
+
+qPCR_CrAss_GCpermL.1$site <- factor(qPCR_CrAss_GCpermL.1$site,levels = c(1:11,"N")) # Reorder sites from 1-10-11-2-3-4...-Neg to 1-2-3...-10-11-Neg on x-axis.
+#pdf("qPCR_Adeno_GCNpermL_boxplot.a.1.pdf", width = 13, height = 8) # Create the pdf output file.
+qPCR_CrAss_GCNpermL_boxplot.a.1 <- ggplot(qPCR_CrAss_GCpermL.1, aes(x = site, y = logGCper100mL, fill = site)) +
+  geom_boxplot() +
+  geom_jitter(color = 'black', size = 1.5, width = 0.2, height = 0) +
+  theme_bw() +
+  scale_fill_manual(limits = c(1:11,"N"),values = my_colors) + # Reorder sites in legend.
+  labs(title = "Quantities of Cross Assembly Phage in Spring 2021", x = "Sample Location", y = "Log10 gene copy numbers per 100mL of aquatic sample") +
+  theme(legend.position="none") +
+  boxplot_theme
+  
+#GLM Tests to determine significance from lesser polluted environments.
+#Biomass 
+#Significance in reference to site 1 (Duff Roblin Provincial Park)
+qPCR_CrAss_GCperng.1$site <- factor(qPCR_CrAss_GCperng.1$site,levels = c(11:1,"N")) # Reorder sites from 1-10-11-2-3-4...-Neg to 1-2-3...-10-11-Neg on x-axis.       
+qPCR_CrAss_GCN_perng_GLM.1a <- GLM(log_GCN_per_ng ~ site,qPCR_CrAss_GCperng.1,lsm=T)
+summary(qPCR_CrAss_GCN_perng_GLM.1a)
+summary(qPCR_CrAss_GCN_perng_GLM.1a$Parameter)
+p.values <- qPCR_CrAss_GCN_perng_GLM.1a$Parameter[,c("Pr(>|t|)")]
+p.values1a <- p.adjust(p.values, method = "BH")
+
+#Significance in reference to site 6  (upstream to outfall of WEWPCC) 
+qPCR_CrAss_GCperng.1$site <- factor(qPCR_CrAss_GCperng.1$site,levels = c(11:6,"N")) # Reorder sites from 1-10-11-2-3-4...-Neg to 1-2-3...-10-11-Neg on x-axis.      
+qPCR_CrAss_GCN_perng_GLM.1a <- GLM(log_GCN_per_ng ~ site,qPCR_CrAss_GCperng.1,lsm=T)
+summary(qPCR_CrAss_GCN_perng_GLM.1a)
+summary(qPCR_CrAss_GCN_perng_GLM.1a$Parameter)
+p.values1 <- qPCR_CrAss_GCN_perng_GLM.1a$Parameter[,c("Pr(>|t|)")]
+p.values1. <- p.adjust(p.values1, method = "BH")
+
+#Volume 
+#Significance in reference to site 1 (Duff Roblin Provincial Park)
+qPCR_CrAss_GCpermL.1$site <- factor(qPCR_CrAss_GCpermL.1$site,levels = c(11:1,"N")) # Reorder sites from 1-10-11-2-3-4...-Neg to 1-2-3...-10-11-Neg on x-axis.    
+qPCR_CrAss_GCN_perml_GLM.1a <- GLM(logGCper100mL ~ site,qPCR_CrAss_GCpermL.1,lsm=T)
+summary(qPCR_CrAss_GCN_perml_GLM.1a)
+summary(qPCR_CrAss_GCN_perml_GLM.1a$Parameter)
+p.values <- qPCR_CrAss_GCN_perml_GLM.1a$Parameter[,c("Pr(>|t|)")]
+p.valuesa <- p.adjust(p.values, method = "BH")
+
+#Significance in reference to site 6 (upstream to outfall of WEWPCC)
+qPCR_CrAss_GCpermL.1$site <- factor(qPCR_CrAss_GCpermL.1$site,levels = c(11:6,"N")) # Reorder sites from 1-10-11-2-3-4...-Neg to 1-2-3...-10-11-Neg on x-axis.       
+qPCR_CrAss_GCN_perml_GLM.1a <- GLM(logGCper100mL ~ site,qPCR_CrAss_GCpermL.1,lsm=T)
+summary(qPCR_CrAss_GCN_perml_GLM.1a)
+summary(qPCR_CrAss_GCN_perml_GLM.1a$Parameter)
+p.values1b <- qPCR_CrAss_GCN_perml_GLM.1a$Parameter[,c("Pr(>|t|)")]
+p.adjust1b <- p.adjust(p.values1b, method = "BH")
+
+#Sample collection 2: August 27 2021
+#Gene copies normalized per biomass
+Adeno_crAss_sampleevent2 <- read_excel("Adeno_crAss_sampleevent2.xlsx")
+qPCR_CrAss_GCperng.2 <- Adeno_crAss_sampleevent2 %>%
+  subset(qPCRProbe == 'CrAss') %>% # Duplex qPCR, so keep only Adeno results.
+  subset(select = c('Sample Site location', 'GCN per ng','log(GCN per ng)')) %>% # Also selecting the non-normalized values for the boxplots.
+  rename('GCN_per_ng' = 'GCN per ng',
+         'log_GCN_per_ng' = 'log(GCN per ng)',
+         'site' = 'Sample Site location')
+
+qPCR_CrAss_GCperng.2$site <- factor(qPCR_CrAss_GCperng.2$site,levels = c(1:11,"N")) # Reorder sites from 1-10-11-2-3-4...-Neg to 1-2-3...-10-11-Neg on x-axis.
+#pdf("qPCR_Adeno_GCNpermL_boxplot.a.1.pdf", width = 13, height = 8) # Create the pdf output file.
+qPCR_CrAss_GCNperng_boxplot.b.1 <- ggplot(qPCR_CrAss_GCperng.2, aes(x = site, y = log_GCN_per_ng, fill = site)) +
+  geom_boxplot() +
+  geom_jitter(color = 'black', size = 1.5, width = 0.2, height = 0) +
+  theme_bw() +
+  scale_fill_manual(limits = c(1:11,"N"),values = my_colors) + # Reorder sites in legend.
+  labs(title = "Quantities of Cross Assembly Phage in Summer 2021", x = "Sample Location", y = "Log10 gene copy numbers per biomass (ng) of aquatic sample") +
+  theme(legend.position="none") +
+  boxplot_theme
+
+#Gene copies normalized per volume
+Adeno_crAss_sampleevent2 <- read_excel("Adeno_crAss_sampleevent2.xlsx")
+qPCR_CrAss_GCpermL2 <- Adeno_crAss_sampleevent2 %>%
+  subset(qPCRProbe == 'CrAss') %>% # Duplex qPCR, so keep only CrAss results.
+  subset(select = c('Sample Site location', 'GCN per mL sample', 'log(GCN per mL sample)','GCN per 100mL sample','log(GCN per 100mL sample)')) %>% # Also selecting the non-normalized values for the boxplots.
+  rename('GCN_per_mL' = 'GCN per mL sample',
+         'logGCN_per_mL' = 'log(GCN per mL sample)',
+         'GCper100mL' = 'GCN per 100mL sample',
+         'logGCper100mL' = 'log(GCN per 100mL sample)',
+         'site' = 'Sample Site location')
+
+qPCR_CrAss_GCpermL2$site <- factor(qPCR_CrAss_GCpermL2$site,levels = c(1:11,"N")) # Reorder sites from 1-10-11-2-3-4...-Neg to 1-2-3...-10-11-Neg on x-axis.
+#pdf("qPCR_Adeno_GCNpermL_boxplot.a.1.pdf", width = 13, height = 8) # Create the pdf output file.
+qPCR_CrAss_GCNpermL_boxplot.b.1 <- ggplot(qPCR_CrAss_GCpermL2, aes(x = site, y = logGCper100mL, fill = site)) +
+  geom_boxplot() +
+  geom_jitter(color = 'black', size = 1.5, width = 0.2, height = 0) +
+  theme_bw() +
+  scale_fill_manual(limits = c(1:11,"N"),values = my_colors) + # Reorder sites in legend..
+  labs(title = "Quantities of Cross Assembly Phage in Summer 2021", x = "Sample Location", y = "Log10 gene copy numbers per 100mL of aquatic sample") +
+  theme(legend.position="none") +
+  boxplot_theme
+  
+#GLM Tests to determine significance from lesser polluted environments.
+#Biomass 
+#Significance in reference to site 1 (Duff Roblin Provincial Park)
+qPCR_CrAss_GCperng2$site <- factor(qPCR_CrAss_GCperng2$site,levels = c(11:1,"N")) # Reorder sites from 1-10-11-2-3-4...-Neg to 1-2-3...-10-11-Neg on x-axis.        
+qPCR_CrAss_GCN_perng_GLM.2a <- GLM(log_GCN_per_ng ~ site,qPCR_CrAss_GCperng2,lsm=T)
+summary(qPCR_CrAss_GCN_perng_GLM.2a)
+summary(qPCR_CrAss_GCN_perng_GLM.2a$Parameter)
+p.values <- qPCR_CrAss_GCN_perng_GLM.2a$Parameter[,c("Pr(>|t|)")]
+p.values1a <- p.adjust(p.values, method = "BH")
+
+#Significance in reference to site 6  (upstream to outfall of WEWPCC) 
+qPCR_CrAss_GCperng2$site <- factor(qPCR_CrAss_GCperng2$site,levels = c(11:6,"N")) # Reorder sites from 1-10-11-2-3-4...-Neg to 1-2-3...-10-11-Neg on x-axis.      
+qPCR_CrAss_GCN_perng_GLM.2a <- GLM(log_GCN_per_ng ~ site,qPCR_CrAss_GCperng2,lsm=T)
+summary(qPCR_CrAss_GCN_perng_GLM.2a)
+summary(qPCR_CrAss_GCN_perng_GLM.2a$Parameter)
+p.values1 <- qPCR_CrAss_GCN_perng_GLM.2a$Parameter[,c("Pr(>|t|)")]
+p.values1. <- p.adjust(p.values1, method = "BH")
+
+#Volume 
+#Significance in reference to site 1 (Duff Roblin Provincial Park)
+qPCR_CrAss_GCpermL2$site <- factor(qPCR_CrAss_GCpermL2$site,levels = c(11:1,"N")) # Reorder sites from 1-10-11-2-3-4...-Neg to 1-2-3...-10-11-Neg on x-axis.       
+qPCR_CrAss_GCN_perml_GLM.2a <- GLM(logGCper100mL ~ site,qPCR_CrAss_GCpermL2,lsm=T)
+summary(qPCR_CrAss_GCN_perml_GLM.2a)
+summary(qPCR_CrAss_GCN_perml_GLM.2a$Parameter)
+p.values <- qPCR_CrAss_GCN_perml_GLM.2a$Parameter[,c("Pr(>|t|)")]
+p.valuesa <- p.adjust(p.values, method = "BH")
+
+#Significance in reference to site 6 (upstream to outfall of WEWPCC)
+qPCR_CrAss_GCpermL2$site <- factor(qPCR_CrAss_GCpermL2$site,levels = c(11:6,"N")) # Reorder sites from 1-10-11-2-3-4...-Neg to 1-2-3...-10-11-Neg on x-axis.       
+qPCR_CrAss_GCN_perml_GLM.2a <- GLM(logGCper100mL ~ site,qPCR_CrAss_GCpermL2,lsm=T)
+summary(qPCR_CrAss_GCN_perml_GLM.2a)
+summary(qPCR_CrAss_GCN_perml_GLM.2a$Parameter)
+p.values1b <- qPCR_CrAss_GCN_perml_GLM.2a$Parameter[,c("Pr(>|t|)")]
+p.adjust1b <- p.adjust(p.values1b, method = "BH")
+
+#Sample Collection 3: November 21 2021
+#Normalized per biomass
+Adeno_crAss_sampleevent3 <- read_excel("Adeno_crAss_sampleevent3.xlsx")
+qPCR_CrAss_GCperng.3 <- Adeno_crAss_sampleevent3 %>%
+  subset(qPCRProbe == 'CrAss') %>% # Duplex qPCR, so keep only Adeno results.
+  subset(select = c('Sample Site location', 'GCN per ng', 'log(GCN per ng)')) %>% # Also selecting the non-normalized values for the boxplots.
+  rename('GCN_per_ng' = 'GCN per ng',
+         'log_GCN_per_ng' = 'log(GCN per ng)',
+         'site' = 'Sample Site location')
+
+
+qPCR_CrAss_GCperng.3$site <- factor(qPCR_CrAss_GCperng.3$site,levels = c(1:11,"N")) # Reorder sites from 1-10-11-2-3-4...-Neg to 1-2-3...-10-11-Neg on x-axis.
+#pdf("qPCR_Adeno_GCNpermL_boxplot.a.1.pdf", width = 13, height = 8) # Create the pdf output file.
+qPCR_CrAss_GCNperng_boxplot.c.1 <- ggplot(qPCR_CrAss_GCperng.3, aes(x = site, y = log_GCN_per_ng, fill = site)) +
+  geom_boxplot() +
+  geom_jitter(color = 'black', size = 1.5, width = 0.2, height = 0) +
+  theme_bw() +
+  scale_fill_manual(limits = c(1:11,"N"),values = my_colors) + # Reorder sites in legend.
+  labs(title = "Quantities of Cross Assembly Phage in Fall 2021", x = "Sample Location", y = "Log10 gene copy numbers per biomass (ng) of aquatic sample") +
+  theme(legend.position="none") +
+  boxplot_theme
+
+
+#Gene copies normalized per volume
+Adeno_crAss_sampleevent3 <- read_excel("Adeno_crAss_sampleevent3.xlsx")
+qPCR_CrAss_GCpermL <- Adeno_crAss_sampleevent3 %>%
+  subset(qPCRProbe == 'CrAss') %>% # Duplex qPCR, so keep only CrAss results.
+  subset(select = c('Sample Site location', 'GCN per mL sample', 'log(GCN per mL sample)','GCN per 100mL sample','log(GCN per 100mL sample)')) %>% # Also selecting the non-normalized values for the boxplots.
+  rename('GCN_per_mL' = 'GCN per mL sample',
+         'logGCN_per_mL' = 'log(GCN per mL sample)',
+         'GCper100mL' = 'GCN per 100mL sample',
+         'logGCper100mL' = 'log(GCN per 100mL sample)',
+         'site' = 'Sample Site location')
+
+qPCR_CrAss_GCpermL$site <- factor(qPCR_CrAss_GCpermL$site,levels = c(1:11,"N")) # Reorder sites from 1-10-11-2-3-4...-Neg to 1-2-3...-10-11-Neg on x-axis.
+#pdf("qPCR_Adeno_GCNpermL_boxplot.a.1.pdf", width = 13, height = 8) # Create the pdf output file.
+qPCR_CrAss_GCNpermL_boxplot.c.1 <- ggplot(qPCR_CrAss_GCpermL, aes(x = site, y = logGCper100mL, fill = site)) +
+  geom_boxplot() +
+  geom_jitter(color = 'black', size = 1.5, width = 0.2, height = 0) +
+  theme_bw() +
+  scale_fill_manual(limits = c(1:11,"N"),values = my_colors) + # Reorder sites in legend.
+  labs(title = "Quantities of Cross Assembly Phage in Fall 2021", x = "Sample Location", y = "Log10 gene copy numbers per 100mL of aquatic sample") +
+  theme(legend.position="none") +
+  boxplot_theme
+
+#Create Figure Panel for all sampling events across all 3 seasons.
+#Biomass
+plot_grid(qPCR_CrAss_GCNperng_boxplot.a.1, qPCR_CrAss_GCNperng_boxplot.b.1, qPCR_CrAss_GCNperng_boxplot.c.1, labels = c('A', 'B', 'C'), label_size = 14, nrow = 1)
+
+#Volume
+plot_grid(qPCR_CrAss_GCNpermL_boxplot.a.1, qPCR_CrAss_GCNpermL_boxplot.b.1, qPCR_CrAss_GCNpermL_boxplot.c.1, labels = c('A', 'B', 'C'), label_size = 14, nrow = 1)
+
+#GLM Tests to determine significance from lesser polluted environments.
+#Biomass 
+#Significance in reference to site 1 (Duff Roblin Provincial Park)
+qPCR_CrAss_GCperng.3$site <- factor(qPCR_CrAss_GCperng.3$site,levels = c(11:1,"N")) # Reorder sites from 1-10-11-2-3-4...-Neg to 1-2-3...-10-11-Neg on x-axis.       
+qPCR_CrAss_GCN_perng_GLM.3a <- GLM(log_GCN_per_ng ~ site,qPCR_CrAss_GCperng.3,lsm=T)
+summary(qPCR_CrAss_GCN_perng_GLM.3a)
+summary(qPCR_CrAss_GCN_perng_GLM.3a$Parameter)
+p.values <- qPCR_CrAss_GCN_perng_GLM.3a$Parameter[,c("Pr(>|t|)")]
+p.values1a <- p.adjust(p.values, method = "BH")
+
+#Significance in reference to site 6 (upstream to outfall of WEWPCC)
+qPCR_CrAss_GCperng.3$site <- factor(qPCR_CrAss_GCperng.3$site,levels = c(11:6,"N")) # Reorder sites from 1-10-11-2-3-4...-Neg to 1-2-3...-10-11-Neg on x-axis.      
+qPCR_CrAss_GCN_perng_GLM.3a <- GLM(log_GCN_per_ng ~ site,qPCR_CrAss_GCperng.3,lsm=T)
+summary(qPCR_CrAss_GCN_perng_GLM.3a)
+summary(qPCR_CrAss_GCN_perng_GLM.3a$Parameter)
+p.values1 <- qPCR_CrAss_GCN_perng_GLM.3a$Parameter[,c("Pr(>|t|)")]
+p.values1. <- p.adjust(p.values1, method = "BH")
+
+#Volume
+#Significance in reference to site 1 (Duff Roblin Provincial Park)
+qPCR_CrAss_GCpermL.3$site <- factor(qPCR_CrAss_GCpermL.3$site,levels = c(11:1,"N")) # Reorder sites from 1-10-11-2-3-4...-Neg to 1-2-3...-10-11-Neg on x-axis.      
+qPCR_CrAss_GCN_perml_GLM.3a <- GLM(logGCper100mL ~ site,qPCR_CrAss_GCpermL.3,lsm=T)
+summary(qPCR_CrAss_GCN_perml_GLM.3a)
+summary(qPCR_CrAss_GCN_perml_GLM.3a$Parameter)
+p.values <- qPCR_CrAss_GCN_perml_GLM.3a$Parameter[,c("Pr(>|t|)")]
+p.valuesa <- p.adjust(p.values, method = "BH")
+
+#Significance in reference to site 6 (upstream to outfall of WEWPCC)
+qPCR_CrAss_GCpermL.3$site <- factor(qPCR_CrAss_GCpermL.3$site,levels = c(11:6,"N")) # Reorder sites from 1-10-11-2-3-4...-Neg to 1-2-3...-10-11-Neg on x-axis.       
+qPCR_CrAss_GCN_perml_GLM.3a <- GLM(logGCper100mL ~ site,qPCR_CrAss_GCpermL.3,lsm=T)
+summary(qPCR_CrAss_GCN_perml_GLM.3a)
+summary(qPCR_CrAss_GCN_perml_GLM.3a$Parameter)
+p.values1b <- qPCR_CrAss_GCN_perml_GLM.3a$Parameter[,c("Pr(>|t|)")]
+p.adjust1b <- p.adjust(p.values1b, method = "BH")
+
+
