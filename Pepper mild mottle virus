@@ -1,4 +1,4 @@
-# The R scripts used to generate boxplots (GCNs per volume and GCNs per biomass) for Human Adenovirus (HAdV)
+# The R scripts used to generate boxplots (GCNs per volume and GCNs per biomass) for Pepper mild mottle virus
 
 library(readxl)
 library(magrittr)
@@ -97,12 +97,8 @@ qPCR_PMMV_GCNpermL_boxplot.c.1 <- ggplot(qPCR_PMMV_GCpermL, aes(x = site, y = lo
   boxplot_theme
 
 #Create Figure Panel for all sampling events across all 3 seasons.
-#Biomas
-plot_grid(qPCR_PMMV_GCNperng_boxplot.a.1, qPCR_PMMV_GCNperng_boxplot.b.1, qPCR_PMMV_GCNperng_boxplot.c.1, labels = c('A', 'B', 'C'), label_size = 14, nrow = 1)
-
 #Volume
 plot_grid(qPCR_PMMV_GCNpermL_boxplot.a.1, qPCR_PMMV_GCNpermL_boxplot.b.1, qPCR_PMMV_GCNpermL_boxplot.c.1, labels = c('A', 'B', 'C'), label_size = 14, nrow = 1)
-
 
 #GLM Tests to determine significance from lesser polluted environments.
 #Sample Collection 1: May 16 2021
