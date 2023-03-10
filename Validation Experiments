@@ -1,0 +1,176 @@
+library(readxl)
+library(magrittr)
+library(dplyr)
+library(ggplot2)
+library(cowplot)
+library(sasLM)
+
+# Some boxplot aesthetic
+
+# Some boxplot aesthetics to be used for all boxplots:
+boxplot_theme <- theme(#plot.title = element_text(size = 16, face = "bold", hjust = 0.5, vjust = 3.5), #hjust = 0.5 to center horizontally.
+  plot.margin = margin(1, 1, 1, 1, "cm"),
+  panel.background = element_rect(fill = 'white'),
+  panel.border = element_rect(colour = "grey", fill=NA, size=1),
+  panel.grid.major = element_line(color = 'grey95'),
+  panel.grid.major.x = element_blank(),
+  axis.title.x = element_text(size = 18, vjust = -1),
+  axis.title.y = element_text(size = 18, vjust = 2.5),
+  axis.text.x = element_text(size = 16),
+  axis.text.y = element_text(size = 16),
+  axis.line = element_line(color = 'grey'),
+  legend.title = element_text(size = 14, face = "bold"),
+  legend.text = element_text(size = 12),
+  legend.key = element_blank())
+
+#Skimmed milk Vs TFF
+#aRNA
+qPCR_ArmRNA_Validation <- read_excel("Excel_analyses/qPCR_ArmRNA_Validation.xls")
+
+qPCR_ArmRNA_Validation_GCN_per_mL <- qPCR_ArmRNA_Validation %>%
+  subset(select = c('Viral_Concentration_Method','GCN per mL sample', 'log(GCN per mL sample)','Recovery efficiency','log(recovery efficiency)')) %>% # For easier application of script to other datasets, grab both log & non-log values.
+  rename('GCN_per_mL' = 'GCN per mL sample',
+         'log_GCN_per_mL' = 'log(GCN per mL sample)',
+         'recovery_eff' = 'Recovery efficiency',
+         'Logrecovery_eff' = 'log(recovery efficiency)',
+         'viral_method' = 'Viral_Concentration_Method') 
+
+qPCR_ArmRNA_Validation_GCpermL_boxplot <- ggplot(qPCR_ArmRNA_Validation_GCN_per_mL, aes(x = viral_method, y = Logrecovery_eff, fill = viral_method)) + 
+  geom_boxplot() +
+  geom_jitter(colour="purple", size = 3.5, width = 0.01, height = 0) +
+  labs(x = "Method of concentrating viruses from aquatic samples", y = "Log10 percentage recovery efficiencies of aRNA per mL of aquatic sample", fill = "Method of concentrating viruses") +
+  theme(legend.position="none") +
+  stat_summary(fun="mean",geom="point", shape=13, size=6, color="black", fill="black")+
+  stat_compare_means(method = "t.test", label.x = 1.5, size=6) +
+  boxplot_theme
+
+qPCR_ArmRNA_Validation_GCN_per_mL_GLM <- GLM(Logrecovery_eff~viral_method,qPCR_ArmRNA_Validation_GCN_per_mL,lsm=T) # GC per mL. Set lsm=T to get Least Square Means table.
+ 
+
+#Extraction Methods: Qiagen vs ThermoFisher
+#aRNA
+#Normalized per 100mL of aquatic sample
+aRNA_Qiagen_Thermo <- read_excel("aRNA_Qiagen_Thermo.xls")
+qPCR_aRNA_Qiagen_Thermo_GCpermL <- aRNA_Qiagen_Thermo %>%
+  subset(select = c('Treatment', 'GC per mL sample', 'log(GC per mL sample)', 'Recovery efficiency', 'log(Recovery efficiency)')) %>% # For easier application of script to other datasets, grab both log & non-log values.
+  rename('GCpermL' = 'GC per mL sample',
+         'logGCpermL' = 'log(GC per mL sample)',
+         'Recovery efficiency' = 'Recovery efficiency',
+         'Logrecovery_eff' = 'log(Recovery efficiency)',
+         'treatment' = 'Treatment')
+
+qPCR_aRNA_Qiagen_Thermo_GCpermL_boxplot <- ggplot(qPCR_aRNA_Qiagen_Thermo_GCpermL, aes(x = treatment, y = Logrecovery_eff, fill = treatment)) + 
+  geom_boxplot() +
+  geom_jitter(color = 'purple', size = 4, width = 0.01, height = 0) +
+  labs(x = "Method of extracting total nucleic acids from aquatic samples", y = "Log10 percentage recovery efficiencies of aRNA per mL of aquatic sample", fill = "treatment") +
+  theme(legend.position="none") +
+  stat_summary(fun="mean",geom="point", shape=13, size=6, color="black")+
+  stat_compare_means(method = "t.test", label.x = 1.0, size=6) +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  boxplot_theme
+
+qPCR_aRNA_Qiagen_Thermo_GCpermL_GLM <- GLM(Logrecovery_eff~treatment,qPCR_aRNA_Qiagen_Thermo_GCpermL,lsm=T) # GC per mL. Set lsm=T to get Least Square Means table.
+
+
+#DNAse I vs TurboDNAse
+#Normalized by volume (100mL)
+#16S rRNA
+qPCR_16S_DNasevsTurboDNase <- read_excel("qPCR_16S_DNasevsTurboDNase.xls")
+qPCR_16S_DNasevsTurboDNase_GCN_per_mL <- qPCR_16S_DNasevsTurboDNase  %>%
+  subset(select = c('Treatment', 'GC per mL sample', 'log(GC per mL sample)','GC per 100 mL sample','log(GC per 100 mL sample)')) %>% # For easier application of script to other datasets, grab both log & non-log values.
+  rename('GCpermL' = 'GC per mL sample',
+         'logGCpermL' = 'log(GC per mL sample)',
+         'GCper100mL' = 'GC per 100 mL sample',
+         'logGCper100mL' = 'log(GC per 100 mL sample)',
+         'treatment' = 'Treatment')
+
+qPCR_16S_DNasevsTurboDNase_GCpermL_boxplota <- ggplot(qPCR_16S_DNasevsTurboDNase_GCN_per_mL, aes(x = treatment, y = logGCpermL, fill = treatment)) + 
+  geom_boxplot() +
+  geom_jitter(color = 'purple', size = 3.5, width = 0.01, height = 0) +
+  labs(title ="Assessment of Bacterial 16S rRNA gene",  x = "Enzymatic DNAse Treatments", y = "Log10 Gene Copy Numbers per mL of aquatic sample", fill = "treatment") +
+  theme(legend.position="none") +
+  theme(plot.title = element_text(hjust = 0.5, size =18)) +
+  stat_summary(fun="mean",geom="point", shape=13, size=6, color="black", fill="black")+
+  stat_compare_means(method = "t.test", label.x = 1.5, size=6) +
+  boxplot_theme
+
+qPCR_16S_DNasevsTurboDNase_GCN_per_mL_GLM <- GLM(logGCpermL~treatment,qPCR_16S_DNasevsTurboDNase_GCN_per_mL,lsm=T) # GC per mL. Set lsm=T to get Least Square Means table.
+
+#aRNA
+TurboDNAsevsDNAseI_aRNA <- read_excel("TurboDNAsevsDNAseI_aRNA.xls")
+qPCR_TurboDNAse_vs_DNAse_GCpermL <- TurboDNAsevsDNAseI_aRNA %>%
+  subset(select = c('Treatment', 'GC per mL sample', 'log(GC per mL sample)', 'Recovery-efficiency', 'Log(recovery_eficiency)','GCN per 100mL sample')) %>% # For easier application of script to other datasets, grab both log & non-log values.
+  rename('GCpermL' = 'GC per mL sample',
+         'logGCpermL' = 'log(GC per mL sample)',
+         'recovery_eff' = 'Recovery-efficiency',
+         'Logrecovery_eff' = 'Log(recovery_eficiency)',
+         'GCper100mL' = 'GCN per 100mL sample',
+         'treatment' = 'Treatment') 
+
+qPCR_TurboDNAse_vs_DNAse_GCpermL_boxplot <- ggplot(qPCR_TurboDNAse_vs_DNAse_GCpermL, aes(x = treatment, y = Logrecovery_eff, fill = treatment)) + 
+  geom_boxplot() +
+  geom_jitter(color = 'purple', size = 3.5, width = 0.01, height = 0) +
+  labs(title = "Recovery of Armored RNA virus", x = "Enzymatic DNAse Treatments", y = "Log10 percentage recovery efficiencies of aRNA per mL of aquatic sample", fill = "treatment") +
+  theme(legend.position="none") +
+  stat_summary(fun="mean",geom="point", shape=13, size=6, color="black", fill="black")+
+  stat_compare_means(method = "t.test", label.x = 1.2, size=6) +
+  theme(plot.title = element_text(hjust = 0.5, size =18)) +
+  boxplot_theme
+
+plot_grid(qPCR_TurboDNAse_vs_DNAse_GCpermL_boxplot, qPCR_16S_DNasevsTurboDNase_GCpermL_boxplota, labels = c('A', 'B'), label_size = 16, nrow = 1)
+qPCR_aRNA_DNasevsTurboDNase_GCN_per_mL_GLM <- GLM(Logrecovery_eff~treatment,qPCR_TurboDNAse_vs_DNAse_GCpermL,lsm=T) # GC per mL. Set lsm=T to get Least Square Means table.
+
+plot_grid(qPCR_TurboDNAse_vs_DNAse_GCperng, qPCR_16S_DNasevsTurboDNase_GCperng_boxplot, labels = c('A', 'B'), label_size = 14, nrow = 1)
+
+
+
+
+#Assessment of viral DNA fractions by comparing RNAse A vs RNAse III
+#Normalized by volume (100mL)
+#16S rRNA
+X16SrRNA_RNAseAvsRNAseIII <- read_excel("16SrRNA-RNAseAvsRNAseIII.xls")
+qPCR_16SrRNA_RNAseAvsRNAseIII_per_mL <- X16SrRNA_RNAseAvsRNAseIII  %>%
+  subset(select = c('Site', 'GCN per mL sample', 'log(GCN per mL sample)','GCN per 100 mL sample','log(GCN per 100 mL sample)')) %>% # For easier application of script to other datasets, grab both log & non-log values.
+  rename('GCpermL' = 'GCN per mL sample',
+         'logGCpermL' = 'log(GCN per mL sample)',
+         'GCper100mL' = 'GCN per 100 mL sample',
+         'logGCper100mL' = 'log(GCN per 100 mL sample)',
+         'site' = 'Site')  
+
+qPCR_16SrRNA_RNAseAvsRNAseIII_per_mL_boxplota <- ggplot(qPCR_16SrRNA_RNAseAvsRNAseIII_per_mL, aes(x = site, y = logGCpermL, fill = site)) + 
+  geom_boxplot() +
+  geom_jitter(color = 'purple', size = 3.5, width = 0.01, height = 0) +
+  labs(title = "Assessment of Bacterial 16S rRNA gene", x = "Enzymatic RNAse Treatments", y = "Log10 Gene Copy Numbers per mL of aquatic sample", fill = "site") +
+  theme(legend.position="none") +
+  theme(plot.title = element_text(hjust = 0.5, size =18)) +
+  stat_summary(fun="mean",geom="point", shape=13, size=6, color="black")+
+  stat_compare_means(method = "t.test", label.x = 1.8, size=6) +
+  boxplot_theme
+
+qPCR_16SrRNA_RNAseAvsRNAseIII_per_mL_GLM <- GLM(logGCpermL~site,qPCR_16SrRNA_RNAseAvsRNAseIII_per_mL,lsm=T) # GC per mL. Set lsm=T to get Least Square Means table.
+
+#aRNA
+aRNA_RNAseAvsRNAseIII <- read_excel("aRNA-RNAseAvsRNAseIII.xls")
+qPCR_aRNA_RNAseAvsRNAseIII_GCpermL <- aRNA_RNAseAvsRNAseIII %>%
+  subset(select = c('Treatment', 'GC per mL sample', 'log(GC per mL sample)','Recovery efficiency','log(Recovery efficiency)')) %>% # For easier application of script to other datasets, grab both log & non-log values.
+  rename('GCpermL' = 'GC per mL sample',
+         'logGCpermL' = 'log(GC per mL sample)',
+         'Logrecovery_eff' = 'log(Recovery efficiency)',
+         'treatment' = 'Treatment') 
+
+qPCR_aRNA_RNAseAvsRNAseIII_GCpermL_boxplot <- ggplot(qPCR_aRNA_RNAseAvsRNAseIII_GCpermL, aes(x = treatment, y = Logrecovery_eff, fill = treatment)) + 
+  geom_boxplot() +
+  geom_jitter(color = 'purple', size = 3.5, width = 0.01, height = 0) +
+  labs(title = "Recovery of Armored RNA virus", x = "Enzymatic RNAse Treatments", y = "Log10 percentage recovery efficiencies of aRNA per mL of aquatic sample", fill = "treatment") +
+  theme(legend.position="none") +
+  theme(plot.title = element_text(hjust = 0.5, size=18)) +
+  stat_summary(fun="mean",geom="point", shape=13, size=6, color="black")+
+  stat_compare_means(method = "t.test", label.x = 1.8, size=4.5) +
+  boxplot_theme
+
+
+
+plot_grid(qPCR_aRNA_RNAseAvsRNAseIII_GCpermL_boxplot, qPCR_16SrRNA_RNAseAvsRNAseIII_per_mL_boxplota, labels = c('A', 'B'), label_size = 16, nrow = 1)
+
+
+qPCR_16SrRNA_RNAseAvsRNAseIII_per_mL_GLM <- GLM(Logrecovery_eff~treatment,qPCR_aRNA_RNAseAvsRNAseIII_GCpermL,lsm=T) # GC per mL. Set lsm=T to get Least Square Means table.
